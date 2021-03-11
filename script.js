@@ -54,7 +54,6 @@
       const closeSpan = document.createElement("span");
       nameSpan.style.fontSize = "small";
       nameSpan.innerText = messageSenderName.trim();
-      closeSpan.innerText = "x";
       closeSpan.style.cursor = "pointer";
       closeSpan.classList.add("teams-custom-quote-message-close");
       closeSpan.addEventListener("click", replyMessageClickHandler);
@@ -88,16 +87,6 @@
     composeParent.style.height = "33px";
   }
 
-  function sendButtonClickHandler() {
-    const replyMessageCloseButton = document.querySelector(
-      ".teams-custom-quote-message-close"
-    );
-
-    if (replyMessageCloseButton) {
-      replyMessageCloseButton.innerText = "";
-    }
-  }
-
   function composeHasActiveQuoteMessage() {
     return document
       .querySelector(".cke_wysiwyg_div")
@@ -108,9 +97,10 @@
     const head = document.getElementsByTagName("head")[0];
     const style = document.createElement("style");
     const declarations = document.createTextNode(`
-       .teams-custom-quote-message-button:hover { color: #a2c0f5 !important; }
-       .teams-custom-quote-message-close:hover { opacity: .5 !important; }
-       .ts-message-thread-body .message-body-top-row .top-row-text-container { justify-content: space-between; }
+      .teams-custom-quote-message-button:hover { color: #a2c0f5 !important; }
+      .ts-message-thread-body .message-body-top-row .top-row-text-container { justify-content: space-between; }
+      .teams-custom-quote-message-close:hover { opacity: .5 !important; }
+      .cke_wysiwyg_div .teams-custom-quote-message-close:before { content: 'x'; }
     `);
 
     style.type = "text/css";
@@ -170,11 +160,6 @@
 
   setTimeout(() => {
     const observeTarget = document;
-    const sendButton = document.querySelector(".compose-send-discard");
-
-    if (sendButton) {
-      sendButton.addEventListener("click", sendButtonClickHandler);
-    }
 
     appendCustomStyles();
     addQuoteMessage();
