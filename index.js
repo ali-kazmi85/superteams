@@ -151,15 +151,33 @@ async function ensureMacProcess() {
   await runProcess(cmd, path.dirname(cmd));
 }
 
+async function ensureLinuxProcess() {
+  //kill existing process
+  try {
+    await runProcess("killall -9 teams");
+  } catch {}
+
+  //get teams path
+  const teamsPath = "/usr/bin/teams";
+
+  //launch process
+  const cmd = `${teamsPath} --remote-debugging-port=${port}`;
+  console.log({ cmd });
+  await runProcess(cmd, path.dirname(cmd));
+}
+
 (async () => {
   if (!(await isRunningWithDebugger())) {
     if (os.platform() === "win32") {
       ensureWindowsProcess();
     } else if (os.platform() === "darwin") {
       ensureMacProcess();
-    } else {
+    } else if (os.platform() === "linux"){
+      ensureLinuxProcess();
+    }
+    else {
       console.warn(
-        `unsupported os ${os.platform()}. only compatible with windows and mac. exiting...`
+        `unsupported os ${os.platform()}. only compatible with windows, mac and linux. exiting...`
       );
       process.exit();
     }
