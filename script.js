@@ -1,4 +1,20 @@
 (() => {
+  function updateUrlParameter(uri, key, value) {
+    // remove the hash part before operating on the uri
+    // var i = uri.indexOf('#');
+    // var hash = i === -1 ? ''  : uri.substr(i);
+    //      uri = i === -1 ? uri : uri.substr(0, i);
+
+    var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+    var separator = uri.indexOf("?") !== -1 ? "&" : "?";
+    if (uri.match(re)) {
+      uri = uri.replace(re, "$1" + key + "=" + value + "$2");
+    } else {
+      uri = uri + separator + key + "=" + value;
+    }
+    return uri; //+ hash;  // finally append the hash as well
+  }
+
   function addQuoteMessage() {
     const threadBodyMediaList = document.querySelectorAll(
       '[data-tid="threadBodyMedia"]'
@@ -38,6 +54,14 @@
       const messageSenderName = event.target.offsetParent.querySelector(
         '[data-tid="threadBodyDisplayName"]'
       ).innerText;
+      const messageId = event.target.offsetParent.offsetParent.offsetParent
+        .querySelector('[data-tid="threadBodyMedia"]')
+        .id.substr(1);
+      const messageUrl = updateUrlParameter(
+        window.location.href,
+        "messageId",
+        messageId
+      );
 
       const blockquote = document.createElement("blockquote");
       blockquote.setAttribute("itemtype", "http://schema.skype.com/Reply");
@@ -50,14 +74,23 @@
       topRowParagraphBreak.style.justifyContent = "space-between";
       topRowParagraph.appendChild(topRowParagraphBreak);
 
+      const wrapper = document.createElement("span");
       const nameSpan = document.createElement("span");
       const closeSpan = document.createElement("span");
-      nameSpan.style.fontSize = "small";
+      wrapper.style.fontSize = "small";
       nameSpan.innerText = messageSenderName.trim();
       closeSpan.style.cursor = "pointer";
       closeSpan.classList.add("teams-custom-quote-message-close");
       closeSpan.addEventListener("click", replyMessageClickHandler);
-      topRowParagraphBreak.appendChild(nameSpan);
+      const messageLink = document.createElement("a");
+      messageLink.href = messageUrl;
+      messageLink.title = "Go to original message";
+      messageLink.innerText = "💬";
+      messageLink.classList.add("teams-custom-quote-message-link");
+
+      wrapper.appendChild(nameSpan);
+      wrapper.appendChild(messageLink);
+      topRowParagraphBreak.appendChild(wrapper);
       topRowParagraphBreak.appendChild(closeSpan);
 
       const textPreviewParagraph = document.createElement("p");
@@ -101,6 +134,7 @@
       .ts-message-thread-body .message-body-top-row .top-row-text-container { justify-content: space-between; }
       .teams-custom-quote-message-close:hover { opacity: .5 !important; }
       .cke_wysiwyg_div .teams-custom-quote-message-close:before { content: 'x'; }
+      .cke_wysiwyg_div .teams-custom-quote-message-link { display: none; }
     `);
 
     style.type = "text/css";
