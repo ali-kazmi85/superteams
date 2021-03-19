@@ -84,15 +84,6 @@ async function receiveWsResponse(ws) {
   });
 }
 
-async function isRunningWithDebugger() {
-  try {
-    await axios.get("/json/list");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function runProcess(cmdString, workingDirectory) {
   return new Promise((resolve, reject) => {
     let opts = {};
@@ -101,16 +92,14 @@ async function runProcess(cmdString, workingDirectory) {
     }
     exec(cmdString, opts, (error, stdout, stderr) => {
       if (error) {
-        console.log(`error: ${error.message}`);
         reject(error);
         return;
       }
       if (stderr) {
-        console.log(`stderr: ${stderr}`);
+        console.error(`stderr: ${stderr}`);
         reject(error);
         return;
       }
-      console.log(`stdout: ${stdout}`);
       resolve();
     });
   });
@@ -167,26 +156,23 @@ async function ensureLinuxProcess() {
 }
 
 (async () => {
-  if (!(await isRunningWithDebugger())) {
-    if (os.platform() === "win32") {
-      ensureWindowsProcess();
-    } else if (os.platform() === "darwin") {
-      ensureMacProcess();
-    } else if (os.platform() === "linux"){
-      ensureLinuxProcess();
-    }
-    else {
-      console.warn(
-        `unsupported os ${os.platform()}. only compatible with windows, mac and linux. exiting...`
-      );
-      process.exit();
-    }
+  if (os.platform() === "win32") {
+    await ensureWindowsProcess();
+  } else if (os.platform() === "darwin") {
+    await ensureMacProcess();
+  } else if (os.platform() === "linux") {
+    await ensureLinuxProcess();
+  } else {
+    console.warn(
+      `unsupported os ${os.platform()}. only compatible with windows, mac and linux. exiting...`
+    );
+    process.exit();
   }
-
   const chatWindow = await findChatWindow();
-  const payload = createEvalExpression(script); //createEvalExpression("alert('hello world')");
+  const payload = createEvalExpression(script);
   const ws = await getSocketByWindow(chatWindow);
   ws.send(JSON.stringify(payload));
   const result = await receiveWsResponse(ws);
   console.log({ result });
+  process.exit();
 })();
