@@ -51,11 +51,17 @@
               if (replyQuote && replyQuote.hasAttribute("itemid")) {
                 replyQuote.addEventListener("click", (event) => {
                   const messageId = event.currentTarget.getAttribute("itemid");
+                  const resetUrl = updateUrlParameter(
+                    window.location.href,
+                    "messageId",
+                    ""
+                  );
                   const messageUrl = updateUrlParameter(
                     window.location.href,
                     "messageId",
                     messageId
                   );
+                  window.location.href = resetUrl;
                   window.location.href = messageUrl;
                 });
                 threadBodyTopRow.setAttribute("data-hasgoto", "true");
