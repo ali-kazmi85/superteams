@@ -153,7 +153,7 @@
     const head = document.getElementsByTagName("head")[0];
     const style = document.createElement("style");
     const declarations = document.createTextNode(`
-      .teams-custom-quote-message-button { height: 16px; width: 16px; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAAEEfUpiAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAFhSURBVEhL7Ze7SsRAFECjiIVg4QO0sBMUC0HwDwRtLGwFO1vLxcLW2sIvsFG/QLBQGzsLa19YCYJiIWi1+Dw3uSNx9mY2MbgukgOHOzOZF5NkJoly86H2xblc7GiMWUHXR0nuULo5iXMG3Zge50pjWyETfMWZOKd0aLRWyV37wq+0pvHfcorWyjSljtIwy378hr/WE3iWJGO2sQfHcFIKlIZ7ZPGs0eJIY0Vb4+8whRhC9+QVZhpdY/EBN7ETm7KE6ca+exjkBa2Gac8xyDWmG+ziIcp74cqWMcgWuso+s2iVN7CAWRXlFs8nyTDDGi2mNFZU/BFyJG0kydbSiweY9Zb+GqPo7zEtmYDsO0/oDxzyEhexFDV8R2uAIl7gCP6IOXxEq+OiykGU61vKYhCP0erYQgYaR/lFkX8KV/ce5SEuxSq+YWgCFjLwPt5ilxSURY6imyRZiAFcT5IVFY4o+gS5xY+ES2YuawAAAABJRU5ErkJggg==') !important; background-size: 16px 16px !important; }
+      .teams-custom-quote-message-button { height: 16px; width: 16px; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGlSURBVChTnZOxSwJRHMfvpogwaAgaogNFCM+93LolG9qabhCCECeHJhe3hrZaHHNwTHD1D7ghx5YjBIMLRUIHl/OSjvO9vr93Ty/xiugDX97v+/v93k/fe5yyhHOeoiV0QIV4NpsNXSaTQQc/CB2A2ZVhDKheQE/SKkqhUGCqqjKENOdQJBE80jqdTgORIJDMQ01pI5C8TKVSYsRC9XodaX5EdQHMfqlUomQT2oZuarUa63Q60dHiQOOGDP8AY8yT4TqDweAzn6dD8FOZinAch866PIGu6ywIgleqCXzff8MiiosbI00mExdryHw+78qfUKFjbHpPJBLkDdmCLZw/y1AAfwV1pY0HDXcyXAWFE5og7d/BpvPxeDyrVCoM8frD/gSazX6/76fTaXEDyWSSNxoN1mq1eK/Xo2Ev0DW0Ge74BpJOuVxe3vNvMgyDjUajD+w5g49AQqPHKRaL4h1yuRz3PI+5rsuGwyG3LItVq1WuaZoYZJom/SsLos8nAok9vJndbrdj7wC5Lejetm0aSD0PsrQKCjuQLm0sqN9CM2n/i6J8AYR+NYM1RnyMAAAAAElFTkSuQmCC') !important; background-size: 16px 16px !important; }
       .teams-custom-quote-message-button:hover { color: #a2c0f5 !important; }
       .ts-message-thread-body .message-body-top-row .top-row-text-container { justify-content: space-between; }
       blockquote[itemtype='http://schema.skype.com/Reply'] { cursor: pointer; }
@@ -175,10 +175,11 @@
   const quoteMessageButtonStyles = {
     margin: "0 0 0 2em",
     padding: "0",
-    background: "transparent",
+    "border-radius": "2px",
     outline: "none",
     border: "none",
     cursor: "pointer",
+    background: "transparent",
   };
 
   function initializeDOMChangeListener(observeTarget) {
