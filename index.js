@@ -1,20 +1,30 @@
 #!/usr/bin/env node
 
-const axios = require("axios").default;
-const WebSocket = require("ws");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { exec } = require("child_process");
+const getPort = require("get-port");
+const CDP = require("chrome-remote-interface");
+const { program } = require("commander");
 
-const winToSocket = {};
-const port = 31337;
-const debuggerUrl = `http://localhost:${port}`;
-axios.defaults.baseURL = debuggerUrl;
+program.option("-e, --enable <flags...>", "enable experimental features");
 
-const script = fs.readFileSync(path.join(__dirname, "script.js"), {
+program.parse(process.argv);
+const options = program.opts();
+
+let port, nodePort, chatClient;
+
+const replyScript = fs.readFileSync(path.join(__dirname, "reply-script.js"), {
   encoding: "utf-8",
 });
+
+const recordingReminderScript = fs.readFileSync(
+  path.join(__dirname, "recording-reminder-script.js"),
+  {
+    encoding: "utf-8",
+  }
+);
 
 async function sleep(durationMs) {
   return new Promise((resolve) => {
@@ -28,11 +38,12 @@ async function findChatWindow() {
   while (!windowFound) {
     let response;
     try {
-      response = await axios.get("/json/list");
+      response = await CDP.List({ host: "localhost", port });
     } catch {}
 
     if (response) {
-      for (const win of response.data) {
+      console.log({ response });
+      for (const win of response) {
         if (win.url.indexOf("/conversations/") >= 0) {
           console.log("window found");
           return win;
@@ -47,41 +58,17 @@ async function findChatWindow() {
 
 function createEvalExpression(expression) {
   return {
-    id: 1337,
-    method: "Runtime.evaluate",
-    params: {
-      expression,
-      objectGroup: "evalme",
-      returnByValue: false,
-      userGesture: true,
-    },
+    allowUnsafeEvalBlockedByCSP: false,
+    awaitPromise: false,
+    expression,
+    generatePreview: true,
+    includeCommandLineAPI: true,
+    objectGroup: "console",
+    replMode: true,
+    returnByValue: false,
+    silent: false,
+    userGesture: true,
   };
-}
-
-async function initWebSocket(wsUrl) {
-  return new Promise((resolve) => {
-    const ws = new WebSocket(wsUrl);
-    ws.once("open", () => {
-      resolve(ws);
-    });
-  });
-}
-
-async function getSocketByWindow(window) {
-  if (!winToSocket[window.id]) {
-    const ws = await initWebSocket(window.webSocketDebuggerUrl);
-    winToSocket[window.id] = ws;
-  }
-
-  return winToSocket[window.id];
-}
-
-async function receiveWsResponse(ws) {
-  return new Promise((resolve) => {
-    ws.once("message", (data) => {
-      resolve(data);
-    });
-  });
 }
 
 async function runProcess(cmdString, workingDirectory) {
@@ -116,13 +103,14 @@ async function ensureWindowsProcess() {
     process.env.LOCALAPPDATA,
     "Microsoft",
     "Teams",
-    "Update.exe"
+    "current",
+    "Teams.exe"
   );
 
   //launch process
-  const cmd = `${teamsPath} --processStart Teams.exe --process-start-args --remote-debugging-port=${port}`;
+  const cmd = `${teamsPath} --inspect=${nodePort} --remote-debugging-port=${port}`;
   console.log({ cmd });
-  await runProcess(cmd, path.dirname(cmd));
+  runProcess(cmd, path.dirname(cmd));
 }
 
 async function ensureMacProcess() {
@@ -135,7 +123,7 @@ async function ensureMacProcess() {
   const teamsPath = "/Applications/Microsoft Teams.app/Contents/MacOS/Teams";
 
   //launch process
-  const cmd = `${teamsPath} --remote-debugging-port=${port}`;
+  const cmd = `${teamsPath} --inspect=${nodePort} --remote-debugging-port=${port}`;
   console.log({ cmd });
   await runProcess(cmd, path.dirname(cmd));
 }
@@ -150,12 +138,15 @@ async function ensureLinuxProcess() {
   const teamsPath = "/usr/bin/teams";
 
   //launch process
-  const cmd = `${teamsPath} --remote-debugging-port=${port}`;
+  const cmd = `${teamsPath} --inspect=${nodePort} --remote-debugging-port=${port}`;
   console.log({ cmd });
   await runProcess(cmd, path.dirname(cmd));
 }
 
 (async () => {
+  port = await getPort();
+  nodePort = await getPort();
+
   if (os.platform() === "win32") {
     await ensureWindowsProcess();
   } else if (os.platform() === "darwin") {
@@ -168,11 +159,28 @@ async function ensureLinuxProcess() {
     );
     process.exit();
   }
-  const chatWindow = await findChatWindow();
-  const payload = createEvalExpression(script);
-  const ws = await getSocketByWindow(chatWindow);
-  ws.send(JSON.stringify(payload));
-  const result = await receiveWsResponse(ws);
-  console.log({ result });
+
+  if (options.enable && options.enable.indexOf("recording-reminder") >= 0) {
+    console.log("enabling recording reminder");
+    try {
+      const payload = createEvalExpression(recordingReminderScript);
+      let client = await CDP({ host: "localhost", port: nodePort });
+
+      await client.Runtime.evaluate(payload);
+    } catch (e) {
+      console.log("error while injecting recording reminder script", e);
+    }
+  }
+
+  try {
+    const chatWindow = await findChatWindow();
+    const payload = createEvalExpression(replyScript);
+
+    chatClient = await CDP({ host: "localhost", port, target: chatWindow });
+    await chatClient.Runtime.evaluate(payload);
+  } catch (e) {
+    console.log("error while injecting reply script", e);
+  }
+
   process.exit();
 })();
