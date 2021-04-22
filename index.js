@@ -15,12 +15,15 @@ const options = program.opts();
 
 let port, nodePort, chatClient;
 
-const replyScript = fs.readFileSync(path.join(__dirname, "reply-script.js"), {
-  encoding: "utf-8",
-});
+const replyScript = fs.readFileSync(
+  path.join(__dirname, "extensions", "reply-injector", "index.js"),
+  {
+    encoding: "utf-8",
+  }
+);
 
 const recordingReminderScript = fs.readFileSync(
-  path.join(__dirname, "recording-reminder-script.js"),
+  path.join(__dirname, "extensions", "recording-reminder", "index.js"),
   {
     encoding: "utf-8",
   }
