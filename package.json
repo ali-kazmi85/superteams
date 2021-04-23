@@ -1,11 +1,12 @@
 {
-  "name": "teams-reply-injector",
+  "name": "superteams",
   "version": "1.9.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
+    "prepare": "npm run build",
     "build": "esbuild src/reply-injector/index.js src/mention-all/index.js --minify --bundle --outdir=extensions"
   },
   "bin": "index.js",

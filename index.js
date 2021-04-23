@@ -29,6 +29,13 @@ const recordingReminderScript = fs.readFileSync(
   }
 );
 
+const mentionAllScript = fs.readFileSync(
+  path.join(__dirname, "extensions", "mention-all", "index.js"),
+  {
+    encoding: "utf-8",
+  }
+);
+
 async function sleep(durationMs) {
   return new Promise((resolve) => {
     setTimeout(() => resolve(), durationMs);
@@ -164,7 +171,7 @@ async function ensureLinuxProcess() {
   }
 
   if (options.enable && options.enable.indexOf("recording-reminder") >= 0) {
-    console.log("enabling recording reminder");
+    console.log("enabling recording-reminder");
     try {
       const payload = createEvalExpression(recordingReminderScript);
       let client = await CDP({ host: "localhost", port: nodePort });
@@ -175,14 +182,28 @@ async function ensureLinuxProcess() {
     }
   }
 
-  try {
-    const chatWindow = await findChatWindow();
-    const payload = createEvalExpression(replyScript);
+  const chatWindow = await findChatWindow();
 
-    chatClient = await CDP({ host: "localhost", port, target: chatWindow });
-    await chatClient.Runtime.evaluate(payload);
-  } catch (e) {
-    console.log("error while injecting reply script", e);
+  if (options.enable && options.enable.indexOf("reply") >= 0) {
+    console.log("enabling reply-to-message");
+    try {
+      const replyPayload = createEvalExpression(replyScript);
+      chatClient = await CDP({ host: "localhost", port, target: chatWindow });
+      await chatClient.Runtime.evaluate(replyPayload);
+    } catch (e) {
+      console.log("error while injecting reply-to-message script", e);
+    }
+  }
+
+  if (options.enable && options.enable.indexOf("mention-all") >= 0) {
+    console.log("enabling mention-all");
+    try {
+      const mentionAllPayload = createEvalExpression(mentionAllScript);
+      chatClient = await CDP({ host: "localhost", port, target: chatWindow });
+      await chatClient.Runtime.evaluate(mentionAllPayload);
+    } catch (e) {
+      console.log("error while injecting mention-all script", e);
+    }
   }
 
   process.exit();
