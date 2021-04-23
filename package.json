@@ -1,11 +1,13 @@
 {
-  "name": "teams-reply-injector",
-  "version": "1.9.0",
+  "name": "superteams",
+  "version": "1.10.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "prepare": "npm run build",
+    "build": "esbuild src/reply-injector/index.js src/mention-all/index.js --minify --bundle --outdir=extensions"
   },
   "bin": "index.js",
   "keywords": [],
@@ -18,6 +20,8 @@
   "dependencies": {
     "chrome-remote-interface": "^0.30.0",
     "commander": "^7.2.0",
+    "dexie": "^3.0.3",
+    "esbuild": "^0.11.12",
     "get-port": "^5.1.1"
   }
 }
