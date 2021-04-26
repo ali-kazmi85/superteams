@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "prepare": "npm run build",
-    "build": "esbuild src/reply-injector/index.js src/mention-all/index.js --minify --bundle --outdir=extensions"
+    "build": "esbuild src/reply-injector/index.js src/mention-all/index.js src/util-window/index.jsx src/test-request/index.js --minify --bundle --outdir=extensions"
   },
   "bin": "index.js",
   "keywords": [],
@@ -18,10 +18,17 @@
   },
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.1",
     "chrome-remote-interface": "^0.30.0",
     "commander": "^7.2.0",
+    "cors-anywhere": "^0.4.4",
     "dexie": "^3.0.3",
     "esbuild": "^0.11.12",
-    "get-port": "^5.1.1"
+    "get-port": "^5.1.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "electron": "^12.0.5"
   }
 }

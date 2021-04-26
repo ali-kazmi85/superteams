@@ -7,6 +7,7 @@ const { exec } = require("child_process");
 const getPort = require("get-port");
 const CDP = require("chrome-remote-interface");
 const { program } = require("commander");
+var cors_proxy = require("cors-anywhere");
 
 program.option("-e, --enable <flags...>", "enable experimental features");
 
@@ -35,6 +36,19 @@ const mentionAllScript = fs.readFileSync(
     encoding: "utf-8",
   }
 );
+
+const utilWindowScript = fs.readFileSync(
+  path.join(__dirname, "extensions", "util-window", "index.js"),
+  {
+    encoding: "utf-8",
+  }
+);
+
+function getExtensionScript(name) {
+  return fs.readFileSync(path.join(__dirname, "extensions", name, "index.js"), {
+    encoding: "utf-8",
+  });
+}
 
 async function sleep(durationMs) {
   return new Promise((resolve) => {
@@ -153,9 +167,61 @@ async function ensureLinuxProcess() {
   await runProcess(cmd, path.dirname(cmd));
 }
 
+async function injectMainExtension(extensionName) {
+  console.log(`enabling ${extensionName}`);
+  const script = getExtensionScript(extensionName);
+  try {
+    const payload = createEvalExpression(script);
+    let client = await CDP({ host: "localhost", port: nodePort });
+
+    await client.Runtime.evaluate(payload);
+  } catch (e) {
+    console.log(`error while injecting ${extensionName}`, e);
+  }
+}
+
+async function injectBrowserExtension(extensionName, window) {
+  console.log(`injecting ${extensionName}`);
+  const script = getExtensionScript(extensionName);
+  try {
+    const payload = createEvalExpression(script);
+    const client = await CDP({ host: "localhost", port, target: window });
+    await client.Runtime.evaluate(payload);
+  } catch (e) {
+    console.log(`error while injecting ${extensionName}`, e);
+  }
+}
+
+async function injectBrowserScript(name, script, window) {
+  console.log(`injecting ${name}`);
+  try {
+    const payload = createEvalExpression(script);
+    const client = await CDP({ host: "localhost", port, target: window });
+    await client.Runtime.evaluate(payload);
+  } catch (e) {
+    console.log(`error while injecting ${name}`, e);
+  }
+}
+
 (async () => {
   port = await getPort();
   nodePort = await getPort();
+  const proxyPort = await getPort();
+  console.log({ proxyPort });
+  cors_proxy
+    .createServer({
+      originWhitelist: [], // Allow all origins
+      requireHeader: ["origin", "x-requested-with"],
+      removeHeaders: ["cookie", "cookie2"],
+      httpsOptions: {
+        key: fs.readFileSync(path.join(__dirname, "certs", "key.pem")),
+        cert: fs.readFileSync(path.join(__dirname, "certs", "cert.pem")),
+        passPhrase: "pass",
+      },
+    })
+    .listen(proxyPort, "0.0.0.0", function () {
+      console.log("Running CORS Anywhere on port:" + proxyPort);
+    });
 
   if (os.platform() === "win32") {
     await ensureWindowsProcess();
@@ -170,6 +236,8 @@ async function ensureLinuxProcess() {
     process.exit();
   }
 
+  await injectMainExtension("handle-localhost-cert");
+
   if (options.enable && options.enable.indexOf("recording-reminder") >= 0) {
     console.log("enabling recording-reminder");
     try {
@@ -183,6 +251,14 @@ async function ensureLinuxProcess() {
   }
 
   const chatWindow = await findChatWindow();
+
+  await injectBrowserScript(
+    "proxy-port",
+    `window.ST_PROXY_PORT=${proxyPort}`,
+    chatWindow
+  );
+
+  await injectBrowserExtension("test-request", chatWindow);
 
   if (options.enable && options.enable.indexOf("reply") >= 0) {
     console.log("enabling reply-to-message");
@@ -206,5 +282,13 @@ async function ensureLinuxProcess() {
     }
   }
 
-  process.exit();
+  try {
+    const mentionAllPayload = createEvalExpression(utilWindowScript);
+    chatClient = await CDP({ host: "localhost", port, target: chatWindow });
+    await chatClient.Runtime.evaluate(mentionAllPayload);
+  } catch (e) {
+    console.log("error while injecting util-window script", e);
+  }
+
+  //process.exit();
 })();
