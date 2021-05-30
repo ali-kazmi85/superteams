@@ -69,4 +69,6 @@ function scheduleMonitorTask() {
   setTimeout(async () => await monitorMeetings(), MONITORING_INTERVAL);
 }
 
-scheduleMonitorTask();
+module.exports.run = function () {
+  scheduleMonitorTask();
+};
