@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "prepare": "npm run build",
-    "build": "esbuild src/reply-injector/index.js src/mention-all/index.js --minify --bundle --outdir=extensions"
+    "esbuild": "esbuild src/reply-injector/index.js src/mention-all/index.js --minify --bundle --outdir=extensions",
+    "build": "webpack"
   },
   "bin": "index.js",
   "keywords": [],
@@ -18,10 +19,19 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@babel/core": "^7.14.2",
+    "@babel/plugin-transform-runtime": "^7.14.2",
+    "@babel/preset-env": "^7.14.2",
+    "@babel/preset-react": "^7.13.13",
+    "@babel/runtime": "^7.14.0",
+    "babel-loader": "^8.2.2",
     "chrome-remote-interface": "^0.30.0",
     "commander": "^7.2.0",
     "dexie": "^3.0.3",
+    "electron": "^13.0.1",
     "esbuild": "^0.11.12",
-    "get-port": "^5.1.1"
+    "get-port": "^5.1.1",
+    "webpack": "^5.38.1",
+    "webpack-cli": "^4.7.0"
   }
 }

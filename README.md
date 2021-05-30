@@ -4,7 +4,7 @@ This tool extends microsoft teams with additional capabilities
 
 - Reply to a message
 - Reminder to record meetings
-- Press `Ctrl-Alt-A` while typing a message to automatically mention everybody
+- Use `#all` in your messages to to mention everyone. Note that only the first occurrence of `#all` will be expanded.
 
 If you have Node installed, you can simply run it via npx.
 

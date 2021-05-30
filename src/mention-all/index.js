@@ -1,73 +1,33 @@
 import Dexie from "dexie";
-//import hotkeys from "hotkeys-js";
 
-function pasteHtmlAtCaret(html, selectPastedContent) {
+function pasteHtmlAtCaret(html) {
   var sel, range;
   if (window.getSelection) {
-    // IE9 and non-IE
     sel = window.getSelection();
     if (sel.getRangeAt && sel.rangeCount) {
       range = sel.getRangeAt(0);
       range.deleteContents();
 
-      // Range.createContextualFragment() would be useful here but is
-      // only relatively recently standardized and is not supported in
-      // some browsers (IE9, for one)
-      var el = document.createElement("div");
-      el.innerHTML = html;
-      var frag = document.createDocumentFragment(),
-        node,
-        lastNode;
-      while ((node = el.firstChild)) {
-        lastNode = frag.appendChild(node);
-      }
-      var firstNode = frag.firstChild;
+      var frag = range.createContextualFragment(html);
+      let lastNode = frag.lastChild;
       range.insertNode(frag);
 
-      // Preserve the selection
       if (lastNode) {
         range = range.cloneRange();
         range.setStartAfter(lastNode);
-        if (selectPastedContent) {
-          range.setStartBefore(firstNode);
-        } else {
-          range.collapse(true);
-        }
+
+        range.collapse(true);
+
         sel.removeAllRanges();
         sel.addRange(range);
       }
-    }
-  } else if ((sel = document.selection) && sel.type != "Control") {
-    // IE < 9
-    var originalRange = sel.createRange();
-    originalRange.collapse(true);
-    sel.createRange().pasteHTML(html);
-    if (selectPastedContent) {
-      range = sel.createRange();
-      range.setEndPoint("StartToStart", originalRange);
-      range.select();
     }
   }
 }
 
 (async () => {
-  // alert("first alert");
-  // let dbNames = await Dexie.getDatabaseNames();
-
-  // alert(JSON.stringify(dbNames));
-
   let teamsDb;
   let accountId;
-
-  // hotkeys("alt+a", async function () {
-  //   try {
-  //     console.log("hotkey running");
-  //     const markup = await getMarkup();
-  //     pasteHtmlAtCaret(markup, false);
-  //   } catch (e) {
-  //     console.error(e);
-  //   }
-  // });
 
   function getCurrentConversationId() {
     const result = window.location.href.match(
@@ -78,9 +38,10 @@ function pasteHtmlAtCaret(html, selectPastedContent) {
 
   async function getDb() {
     if (teamsDb) return teamsDb;
-    const result = /skypexspaces-(?<mri>[\da-zA-Z]{8}-([\da-zA-Z]{4}-){3}[\da-zA-Z]{12})/.exec(
-      (await Dexie.getDatabaseNames()).join(", ")
-    );
+    const result =
+      /skypexspaces-(?<mri>[\da-zA-Z]{8}-([\da-zA-Z]{4}-){3}[\da-zA-Z]{12})/.exec(
+        (await Dexie.getDatabaseNames()).join(", ")
+      );
 
     let dbName = result[0];
     accountId = result.groups.mri;
@@ -121,28 +82,64 @@ function pasteHtmlAtCaret(html, selectPastedContent) {
       );
     }
 
-    return mentions.join(", ");
+    const markup = mentions.join("&nbsp;") + "&nbsp;";
+
+    return markup;
   }
 
   function createMention({ mri, name }) {
     return `<span data-itemprops="{&quot;mri&quot;:&quot;${mri}&quot;,&quot;mentionType&quot;:&quot;person&quot;,&quot;memberCount&quot;:0}" itemscope="" itemtype="http://schema.skype.com/Mention">${name}</span>`;
   }
 
+  function hideMessageBanner() {
+    var style = document.createElement("style");
+    style.id = "hideMessageBannerCss";
+    style.innerHTML = `
+      .new-message-banner {
+        display: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function restoreMessageBanner() {
+    const styleTag = document.head.querySelector("#hideMessageBannerCss");
+    if (styleTag) styleTag.remove();
+  }
+
   function addMentionAllShortcut() {
     const editor = document.querySelector(".cke_wysiwyg_div");
     if (!editor.hasAttribute("data-hasmentionall")) {
       editor.setAttribute("data-hasmentionall", "true");
-      editor.addEventListener("keyup", async (e) => {
-        if (e.ctrlKey && e.altKey && e.code === "KeyA") {
-          const composePlaceholder = document.querySelector(
-            ".ts-text-watermark"
-          );
-          composePlaceholder.style.display = "none";
-          const markup = await getMarkup();
-          pasteHtmlAtCaret(markup, false);
-          const composerParent = document.querySelector(".cke_contents");
-          composerParent.style.height =
-            Math.min(editor.firstChild.offsetHeight + 40, 149) + "px";
+      editor.addEventListener("keydown", (e) => {
+        if (e.code === "Enter" && !e.shiftKey) {
+          const messageHtml = editor.innerHTML;
+          editor.innerHTML = "";
+          hideMessageBanner();
+          setTimeout(async () => {
+            const markup = await getMarkup();
+            editor.innerHTML = messageHtml.replace(/(#all)\b/i, markup);
+            document.getElementById("send-message-button").click();
+            restoreMessageBanner();
+          }, 0);
+        }
+      });
+    }
+
+    const btnSend = document.getElementById("send-message-button");
+    if (!btnSend.hasAttribute("data-hasmentionall")) {
+      btnSend.setAttribute("data-hasmentionall", "true");
+
+      btnSend.addEventListener("pointerdown", (e) => {
+        if (e.button === 0) {
+          const messageHtml = editor.innerHTML;
+          editor.innerHTML = "";
+          hideMessageBanner();
+          setTimeout(async () => {
+            const markup = await getMarkup();
+            editor.innerHTML = messageHtml.replace(/(#all)\b/i, markup);
+            restoreMessageBanner();
+          }, 0);
         }
       });
     }
@@ -177,7 +174,6 @@ function pasteHtmlAtCaret(html, selectPastedContent) {
 
     const observer = new MutationObserver(mutationObserverCallback);
     observer.observe(observeTarget, config);
-    console.log("DOM Mutation Observer init");
   }
 
   setTimeout(() => {
@@ -186,10 +182,4 @@ function pasteHtmlAtCaret(html, selectPastedContent) {
     addMentionAllShortcut();
     initializeDOMChangeListener(observeTarget);
   }, 4000);
-
-  window.getCurrentConversationId = getCurrentConversationId;
-  window.getDb = getDb;
-  window.Dexie = Dexie;
-  window.getMarkup = getMarkup;
-  window.pasteHtmlAtCaret = pasteHtmlAtCaret;
 })();

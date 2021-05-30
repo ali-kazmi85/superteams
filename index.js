@@ -13,28 +13,13 @@ program.option("-e, --enable <flags...>", "enable experimental features");
 program.parse(process.argv);
 const options = program.opts();
 
-let port, nodePort, chatClient;
+let port, nodePort;
 
-const replyScript = fs.readFileSync(
-  path.join(__dirname, "extensions", "reply-injector", "index.js"),
-  {
+function getExtensionScript(name) {
+  return fs.readFileSync(path.join(__dirname, "extensions", name, "index.js"), {
     encoding: "utf-8",
-  }
-);
-
-const recordingReminderScript = fs.readFileSync(
-  path.join(__dirname, "extensions", "recording-reminder", "index.js"),
-  {
-    encoding: "utf-8",
-  }
-);
-
-const mentionAllScript = fs.readFileSync(
-  path.join(__dirname, "extensions", "mention-all", "index.js"),
-  {
-    encoding: "utf-8",
-  }
-);
+  });
+}
 
 async function sleep(durationMs) {
   return new Promise((resolve) => {
@@ -69,7 +54,7 @@ async function findChatWindow() {
 function createEvalExpression(expression) {
   return {
     allowUnsafeEvalBlockedByCSP: false,
-    awaitPromise: false,
+    awaitPromise: true,
     expression,
     generatePreview: true,
     includeCommandLineAPI: true,
@@ -118,7 +103,7 @@ async function ensureWindowsProcess() {
   );
 
   //launch process
-  const cmd = `${teamsPath} --inspect=${nodePort} --remote-debugging-port=${port}`;
+  const cmd = `${teamsPath} --inspect=${nodePort} --remote-debugging-port=${port} --ignore-certificate-errors`;
   console.log({ cmd });
   runProcess(cmd, path.dirname(cmd));
 }
@@ -153,6 +138,52 @@ async function ensureLinuxProcess() {
   await runProcess(cmd, path.dirname(cmd));
 }
 
+async function injectBrowserScript(script, window) {
+  const payload = createEvalExpression(script);
+  const client = await CDP({ host: "localhost", port, target: window });
+  return await client.Runtime.evaluate(payload);
+}
+
+async function injectBrowserExtension(extensionName, window) {
+  try {
+    console.log(`injecting ${extensionName}`);
+    const script = getExtensionScript(extensionName);
+    const result = await injectBrowserScript(script, window);
+    console.log("result: ", result);
+  } catch (e) {
+    console.log(`error while injecting ${extensionName}`, e);
+  }
+}
+
+async function injectMainScript(script) {
+  const payload = createEvalExpression(script);
+  let client = await CDP({ host: "localhost", port: nodePort });
+
+  const response = await client.Runtime.evaluate(payload);
+  return response;
+}
+
+async function injectMainExtension(name, params) {
+  console.log("running module: " + name);
+  try {
+    const modulePath = path.resolve(__dirname, "extensions", name, "index.js");
+
+    const cwdResult = await injectMainScript(`process.cwd()`);
+
+    const relativePath = path
+      .relative(cwdResult.result.value, modulePath)
+      .replace(/\\/g, "/");
+
+    const runScript = `global.require("${relativePath}").run(${JSON.stringify(
+      params
+    )})`;
+    const result = await injectMainScript(runScript);
+    console.log("result: ", result);
+  } catch (e) {
+    console.log(`error while running module: ${extensionName}`, e);
+  }
+}
+
 (async () => {
   port = await getPort();
   nodePort = await getPort();
@@ -171,39 +202,17 @@ async function ensureLinuxProcess() {
   }
 
   if (options.enable && options.enable.indexOf("recording-reminder") >= 0) {
-    console.log("enabling recording-reminder");
-    try {
-      const payload = createEvalExpression(recordingReminderScript);
-      let client = await CDP({ host: "localhost", port: nodePort });
-
-      await client.Runtime.evaluate(payload);
-    } catch (e) {
-      console.log("error while injecting recording reminder script", e);
-    }
+    await injectMainExtension("recording-reminder");
   }
 
   const chatWindow = await findChatWindow();
 
   if (options.enable && options.enable.indexOf("reply") >= 0) {
-    console.log("enabling reply-to-message");
-    try {
-      const replyPayload = createEvalExpression(replyScript);
-      chatClient = await CDP({ host: "localhost", port, target: chatWindow });
-      await chatClient.Runtime.evaluate(replyPayload);
-    } catch (e) {
-      console.log("error while injecting reply-to-message script", e);
-    }
+    await injectBrowserExtension("reply-injector", chatWindow);
   }
 
   if (options.enable && options.enable.indexOf("mention-all") >= 0) {
-    console.log("enabling mention-all");
-    try {
-      const mentionAllPayload = createEvalExpression(mentionAllScript);
-      chatClient = await CDP({ host: "localhost", port, target: chatWindow });
-      await chatClient.Runtime.evaluate(mentionAllPayload);
-    } catch (e) {
-      console.log("error while injecting mention-all script", e);
-    }
+    await injectBrowserExtension("mention-all", chatWindow);
   }
 
   process.exit();
