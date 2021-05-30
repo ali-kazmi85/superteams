@@ -7,7 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "prepare": "npm run build",
-    "esbuild": "esbuild src/reply-injector/index.js src/mention-all/index.js --minify --bundle --outdir=extensions",
     "build": "webpack"
   },
   "bin": "index.js",
@@ -29,7 +28,6 @@
     "commander": "^7.2.0",
     "dexie": "^3.0.3",
     "electron": "^13.0.1",
-    "esbuild": "^0.11.12",
     "get-port": "^5.1.1",
     "webpack": "^5.38.1",
     "webpack-cli": "^4.7.0"
