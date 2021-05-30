@@ -1,30 +1,5 @@
 import Dexie from "dexie";
 
-function pasteHtmlAtCaret(html) {
-  var sel, range;
-  if (window.getSelection) {
-    sel = window.getSelection();
-    if (sel.getRangeAt && sel.rangeCount) {
-      range = sel.getRangeAt(0);
-      range.deleteContents();
-
-      var frag = range.createContextualFragment(html);
-      let lastNode = frag.lastChild;
-      range.insertNode(frag);
-
-      if (lastNode) {
-        range = range.cloneRange();
-        range.setStartAfter(lastNode);
-
-        range.collapse(true);
-
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-    }
-  }
-}
-
 (async () => {
   let teamsDb;
   let accountId;
@@ -107,8 +82,9 @@ function pasteHtmlAtCaret(html) {
     if (styleTag) styleTag.remove();
   }
 
-  function addMentionAllShortcut() {
-    const editor = document.querySelector(".cke_wysiwyg_div");
+  function addKeyDownEvent(editor) {
+    if (!editor) editor = document.querySelector(".cke_wysiwyg_div");
+    if (!editor) return;
     if (!editor.hasAttribute("data-hasmentionall")) {
       editor.setAttribute("data-hasmentionall", "true");
       editor.addEventListener("keydown", (e) => {
@@ -125,8 +101,13 @@ function pasteHtmlAtCaret(html) {
         }
       });
     }
+  }
 
-    const btnSend = document.getElementById("send-message-button");
+  function addMouseDownEvent(btnSend) {
+    if (!btnSend) btnSend = document.getElementById("send-message-button");
+    if (!btnSend) return;
+    let editor =
+      btnSend.offsetParent.offsetParent.querySelector(".cke_wysiwyg_div");
     if (!btnSend.hasAttribute("data-hasmentionall")) {
       btnSend.setAttribute("data-hasmentionall", "true");
 
@@ -145,7 +126,7 @@ function pasteHtmlAtCaret(html) {
     }
   }
 
-  function initializeDOMChangeListener(observeTarget) {
+  function observeChanges(observeTarget) {
     const config = {
       attributes: false,
       childList: true,
@@ -155,31 +136,24 @@ function pasteHtmlAtCaret(html) {
       attributeOldValue: false,
     };
 
-    const mutationObserverCallback = function (mutations, observer) {
-      if (mutations) {
-        for (let i = 0; i < mutations.length; i++) {
-          if (mutations[i].addedNodes) {
-            for (let x = 0; x < mutations[i].addedNodes.length; x++) {
-              if (
-                mutations[i].addedNodes[x].classList &&
-                mutations[i].addedNodes[x].classList.contains("thread-body")
-              ) {
-                addMentionAllShortcut();
-              }
-            }
-          }
-        }
-      }
-    };
-
-    const observer = new MutationObserver(mutationObserverCallback);
+    const observer = new MutationObserver((mutations) => {
+      mutations?.forEach((m) => {
+        m.addedNodes
+          ?.filter((n) => n.matches(".cke_wysiwyg_div"))
+          .forEach((n) => {
+            addKeyDownEvent(n);
+          });
+        m.addedNodes
+          ?.filter((n) => n.matches("#send-message-button"))
+          .forEach((n) => {
+            addMouseDownEvent(n);
+          });
+      });
+    });
     observer.observe(observeTarget, config);
   }
 
-  setTimeout(() => {
-    const observeTarget = document;
-
-    addMentionAllShortcut();
-    initializeDOMChangeListener(observeTarget);
-  }, 4000);
+  addKeyDownEvent();
+  addMouseDownEvent();
+  observeChanges(document);
 })();
