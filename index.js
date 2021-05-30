@@ -215,5 +215,7 @@ async function injectMainExtension(name, params) {
     await injectBrowserExtension("mention-all", chatWindow);
   }
 
+  await injectBrowserExtension("bravo", chatWindow);
+
   process.exit();
 })();

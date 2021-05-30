@@ -38,6 +38,7 @@ module.exports = [
     entry: {
       "reply-injector": "./src/reply-injector/index.js",
       "mention-all": "./src/mention-all/index.js",
+      bravo: "./src/bravo/index.tsx",
     },
     output: {
       filename: "[name]/index.js",
@@ -61,13 +62,18 @@ module.exports = [
           },
         },
         {
+          test: /\.tsx?$/,
+          use: "ts-loader",
+          exclude: /node_modules/,
+        },
+        {
           test: /\.css$/,
           use: ["style-loader", "css-loader"],
         },
       ],
     },
     resolve: {
-      extensions: ["", ".js", ".jsx"],
+      extensions: ["", ".tsx", ".ts", ".js", ".jsx"],
     },
   },
 ];
