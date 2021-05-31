@@ -180,7 +180,7 @@ async function injectMainExtension(name, params) {
     const result = await injectMainScript(runScript);
     console.log("result: ", result);
   } catch (e) {
-    console.log(`error while running module: ${extensionName}`, e);
+    console.log(`error while running module: ${name}`, e);
   }
 }
 
