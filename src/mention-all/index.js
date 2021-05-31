@@ -111,7 +111,7 @@ import Dexie from "dexie";
     if (!btnSend.hasAttribute("data-hasmentionall")) {
       btnSend.setAttribute("data-hasmentionall", "true");
 
-      btnSend.addEventListener("pointerdown", (e) => {
+      btnSend.addEventListener("mousedown", (e) => {
         if (e.button === 0) {
           const messageHtml = editor.innerHTML;
           editor.innerHTML = "";
@@ -138,13 +138,15 @@ import Dexie from "dexie";
 
     const observer = new MutationObserver((mutations) => {
       mutations?.forEach((m) => {
-        m.addedNodes
-          ?.filter((n) => n.matches(".cke_wysiwyg_div"))
+        Array.from(m.addedNodes)
+          ?.filter((n) => n instanceof Element && n.matches(".cke_wysiwyg_div"))
           .forEach((n) => {
             addKeyDownEvent(n);
           });
-        m.addedNodes
-          ?.filter((n) => n.matches("#send-message-button"))
+        Array.from(m.addedNodes)
+          ?.filter(
+            (n) => n instanceof Element && n.matches("#send-message-button")
+          )
           .forEach((n) => {
             addMouseDownEvent(n);
           });
