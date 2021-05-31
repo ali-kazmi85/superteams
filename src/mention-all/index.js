@@ -106,13 +106,13 @@ import Dexie from "dexie";
   function addMouseDownEvent(btnSend) {
     if (!btnSend) btnSend = document.getElementById("send-message-button");
     if (!btnSend) return;
-    let editor =
-      btnSend.offsetParent.offsetParent.querySelector(".cke_wysiwyg_div");
+
     if (!btnSend.hasAttribute("data-hasmentionall")) {
       btnSend.setAttribute("data-hasmentionall", "true");
 
       btnSend.addEventListener("mousedown", (e) => {
         if (e.button === 0) {
+          let editor = document.querySelector(".cke_wysiwyg_div");
           const messageHtml = editor.innerHTML;
           editor.innerHTML = "";
           hideMessageBanner();
