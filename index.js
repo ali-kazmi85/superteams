@@ -205,6 +205,8 @@ async function injectMainExtension(name, params) {
     await injectMainExtension("recording-reminder");
   }
 
+  await injectMainExtension("bravo-backend");
+
   const chatWindow = await findChatWindow();
 
   if (options.enable && options.enable.indexOf("reply") >= 0) {

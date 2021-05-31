@@ -30,6 +30,7 @@ module.exports = [
   Object.assign({}, commonNodeConfig, {
     entry: {
       "recording-reminder": "./src/recording-reminder/index.js",
+      "bravo-backend": "./src/bravo-backend/index.js",
     },
   }),
   {
@@ -74,6 +75,9 @@ module.exports = [
     },
     resolve: {
       extensions: ["", ".tsx", ".ts", ".js", ".jsx"],
+    },
+    externals: {
+      electron: "electron",
     },
   },
 ];
