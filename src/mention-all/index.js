@@ -138,12 +138,12 @@ import Dexie from "dexie";
 
     const observer = new MutationObserver((mutations) => {
       mutations?.forEach((m) => {
-        m.addedNodes
+        Array.from(m.addedNodes)
           ?.filter((n) => n.matches(".cke_wysiwyg_div"))
           .forEach((n) => {
             addKeyDownEvent(n);
           });
-        m.addedNodes
+        Array.from(m.addedNodes)
           ?.filter((n) => n.matches("#send-message-button"))
           .forEach((n) => {
             addMouseDownEvent(n);

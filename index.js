@@ -7,6 +7,7 @@ const { exec } = require("child_process");
 const getPort = require("get-port");
 const CDP = require("chrome-remote-interface");
 const { program } = require("commander");
+const waitOn = require('wait-on');
 
 program.option("-e, --enable <flags...>", "enable experimental features");
 
@@ -140,6 +141,7 @@ async function ensureLinuxProcess() {
 
 async function injectBrowserScript(script, window) {
   const payload = createEvalExpression(script);
+  await waitOn({resources: [`tcp:${port}`]});
   const client = await CDP({ host: "localhost", port, target: window });
   return await client.Runtime.evaluate(payload);
 }
@@ -157,6 +159,7 @@ async function injectBrowserExtension(extensionName, window) {
 
 async function injectMainScript(script) {
   const payload = createEvalExpression(script);
+  await waitOn({resources: [`tcp:${nodePort}`]});
   let client = await CDP({ host: "localhost", port: nodePort });
 
   const response = await client.Runtime.evaluate(payload);
@@ -200,6 +203,8 @@ async function injectMainExtension(name, params) {
     );
     process.exit();
   }
+
+  
 
   if (options.enable && options.enable.indexOf("recording-reminder") >= 0) {
     await injectMainExtension("recording-reminder");
